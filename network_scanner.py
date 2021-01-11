@@ -1,7 +1,13 @@
 #!/usr/bin/env python
 
 import scapy.all as scapy
+import argparse
 
+def get_arguments():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-t", "--target", dest="target", help="Target IP/ IP range.")
+    (options) = parser.parse_args()
+    return options
 
 def scan(ip):
     arp_request = scapy.ARP(pdst=ip)
@@ -9,8 +15,22 @@ def scan(ip):
     # scapy.ls(scapy.Ether) ; used to list all the arguments of a function
     # using forward slash("/") we can combine both packets into one packet
     arp_request_bradcast = broadcast/arp_request
-    answered, unanswered = scapy.srp(arp_request_bradcast, timeout=1)
-    print(answered.summary())
+    answered_list = scapy.srp(arp_request_bradcast, timeout=1, verbose=False)[0]
 
+    clients_list = []
+    for element in answered_list:
+        # psrc is the ip of the target
+        # hwsrc is the mac address of the target
+        clients_dict = {"ip": element[1].psrc, "mac": element[1].hwsrc}
+        clients_list.append(clients_dict)
+    return clients_list
 
-scan("10.0.2.5")
+def print_result(results_list):
+    print("IP\t\t\tMAC Address")
+    print("----------------------------------------------")
+    for item in results_list:
+        print(item["ip"] + "\t\t" + item["mac"])
+
+options = get_arguments()
+scan_result = scan(options.target)
+print_result(scan_result)
